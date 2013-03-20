@@ -1,0 +1,7 @@
+Name: default
+IncomingDir: incoming/
+MorgueDir: morgue/
+TempDir: temp/
+Allow: lucid unstable>lucid
+Permit: unused_files older_version
+Cleanup: unused_files on_deny on_error

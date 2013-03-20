@@ -1,0 +1,10 @@
+Origin: Ubuntu
+Label: OBB
+Codename: lucid
+AlsoAcceptFor: unstable
+Architectures: i386 amd64 source
+Components: main universe multiverse restricted
+Contents: percomponent allcomponents
+Description: Cheng's PPA (Personal Package Archive)
+SignWith: Zhang Cheng <stephenpcg@gmail.com>
+Log: lucid.log
