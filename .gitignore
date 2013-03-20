@@ -2,4 +2,5 @@ base/*/morgue/
 base/*/logs/
 base/*/db/
 base/*/temp/
+base/*/incoming/
 www/
