@@ -4,3 +4,4 @@ base/*/db/
 base/*/temp/
 base/*/incoming/
 www/
+bin/personal.rc
