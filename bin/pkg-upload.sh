@@ -10,15 +10,20 @@ SRCDIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 pushd $SRCDIR > /dev/null
 
-[[ -r "personal.conf" ]] && source personal.conf
-
-if [[ -z "$BACKUPBASE" ]]; then
-    read -p "basedir to backup: " BACKUPBASE
+if [[ ! -r upload.conf ]]; then
+    echo "there is not upload.conf, exit"
+    exit 0
 fi
 
-BACKUPDIR="$BACKUPBASE/$(date +%Y%m%d%H%M)"
+srcdir="../www/"
 
-rsync -av --progress ../www/ $BACKUPDIR/
+while read host dstdir; do
+    if [[ -z "$host" || -z "$dstdir" ]]; then
+        continue
+    fi
+    echo "uploading to $host:$dstdir ..."
+    rsync -av --progress $srcdir $host:$dstdir
+done < upload.conf
 
 popd > /dev/null 
 

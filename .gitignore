@@ -4,4 +4,5 @@ base/*/db/
 base/*/temp/
 base/*/incoming/
 www/
-bin/personal.rc
+bin/personal.conf
+bin/upload.conf
