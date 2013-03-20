@@ -22,7 +22,7 @@ while read host dstdir; do
         continue
     fi
     echo "uploading to $host:$dstdir ..."
-    rsync -av --progress $srcdir $host:$dstdir
+    rsync -av --progress --delete --delete-after $srcdir $host:$dstdir
 done < upload.conf
 
 popd > /dev/null 
