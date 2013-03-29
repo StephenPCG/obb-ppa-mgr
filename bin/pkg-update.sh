@@ -24,3 +24,5 @@ for d in $distro; do
 
     $REPREPRO processincoming default
 done
+
+$SRCDIR/pkg-genlist.sh
