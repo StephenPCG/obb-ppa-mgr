@@ -30,9 +30,9 @@ pkgs = {}
 for line in proc.stdout.readlines():
     arch, name, ver = line.split()
     arch = arch.split("|")[2][:-1]
-    if arch == "amd64" or arch == "i386":
+    if arch == "amd64" or arch == "i386" or arch == "mipsel":
         if not pkgs.has_key(name):
-            pkgs[name] = {"amd64": None, "i386": None}
+            pkgs[name] = {"amd64": None, "i386": None, "mipsel": None}
         pkgs[name][arch] = ver
 
 print """
@@ -43,14 +43,15 @@ print """
 print "<title>Package list for %s - %s</title>" % (distro, dist)
 print """
 </head><body><table>
-<tr><th>Package</th><th>amd64</th><th>i386</th></tr>
+<tr><th>Package</th><th>amd64</th><th>i386</th><th>mipsel</th></tr>
 """
 
 for pkg, vers in sorted(pkgs.items()):
-    print "<tr><td>%s</td><td>%s</td><td>%s</td>" % (
+    print "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>" % (
         pkg,
         vers["amd64"] if vers["amd64"] else "-",
-        vers["i386"] if vers["i386"] else "-"
+        vers["i386"] if vers["i386"] else "-",
+        vers["mipsel"] if vers["mipsel"] else "-"
         )
 
 print """

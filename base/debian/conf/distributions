@@ -2,7 +2,7 @@ Origin: Debian
 Label: OBB
 Suite: unstable
 Codename: sid
-Architectures: i386 amd64 source
+Architectures: i386 amd64 mipsel source
 Components: main non-free contrib
 Contents: percomponent allcomponents
 Description: Cheng's PPA (Personal Package Archive)
@@ -14,7 +14,7 @@ Label: OBB
 Suite: stable
 Codename: squeeze
 AlsoAcceptFor: unstable testing
-Architectures: i386 amd64 source
+Architectures: i386 amd64 mipsel source
 Components: main non-free contrib
 Contents: percomponent allcomponents
 Description: Cheng's PPA (Personal Package Archive)
