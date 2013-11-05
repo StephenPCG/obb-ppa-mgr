@@ -11,7 +11,7 @@ SRCDIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 pushd $SRCDIR > /dev/null
 
 echo "generating package list page for debian"
-for dist in stable unstable; do
+for dist in oldstable stable unstable; do
     python ./pkg-genlist.py debian $dist > ../www/debian/packages.$dist.html
 done
 

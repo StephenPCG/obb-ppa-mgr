@@ -11,8 +11,20 @@ Log: sid.log
 
 Origin: Debian
 Label: OBB
-Suite: stable
+Suite: oldstable
 Codename: squeeze
+AlsoAcceptFor: unstable testing
+Architectures: i386 amd64 mipsel source
+Components: main non-free contrib
+Contents: percomponent allcomponents
+Description: Cheng's PPA (Personal Package Archive)
+SignWith: Zhang Cheng <stephenpcg@gmail.com>
+Log: squeeze.log
+
+Origin: Debian
+Label: OBB
+Suite: stable
+Codename: wheezy
 AlsoAcceptFor: unstable testing
 Architectures: i386 amd64 mipsel source
 Components: main non-free contrib

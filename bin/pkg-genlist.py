@@ -13,7 +13,7 @@ dist = None
 for arg in sys.argv:
     if "debian|ubuntu".find(arg) > -1:
         distro = arg
-    if "sid|wheezy|squeeze|unstable|testing|stable".find(arg) > -1:
+    if "sid|wheezy|squeeze|unstable|testing|stable|oldstable".find(arg) > -1:
         dist = arg
         distro = "debian"
     if "quantal|precise|oneiric|lucid".find(arg) > -1:
