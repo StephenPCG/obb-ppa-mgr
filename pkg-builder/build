@@ -90,6 +90,11 @@ elif [ -z "$PBUILDER_ACTION" -a -z "$DSCFILE" ]; then
     fi
 fi
 
+case $ARCH in
+    amd64) MULTIARCH=x86_64-linux-gnu ;;
+    i386)  MULTIARCH=i386-linux-gnu ;;
+esac
+
 # normalize debian codename
 case $CODENAME in
     wheezy)
@@ -105,7 +110,7 @@ case $CODENAME in
     ## need patched debootstrap gusty scripts and fake-uname.so
     lucid)
         export UTS_RELEASE=2.6.32
-        export LD_PRELOAD=/usr/lib/fake-uname.so
+        export LD_PRELOAD=/usr/lib/$MULTIARCH/fake-uname.so
         ;;
 esac
 
