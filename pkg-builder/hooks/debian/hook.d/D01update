@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "Entering hook: D01update"
+apt-get update || true
+echo "Leaving hook: D01update"

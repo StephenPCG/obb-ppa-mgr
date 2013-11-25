@@ -1,0 +1,116 @@
+echo "entering $BASH_SOURCE ..."
+echo "whoami: $(whoami)"
+
+MIRRORBASE="mirrors.local.onebitbug.me"
+PPAMIRRORBASE="ppa.local.onebitbug.me"
+UNSTABLE_CODENAME=sid
+TESTING_CODENAME=jessie
+STABLE_CODENAME=wheezy
+
+DEBIAN_SUITES=( "stable" "testing" "unstable" "$UNSTABLE_CODENAME" "$TESTING_CODENAME" "$STABLE_CODENAME")
+UBUNTU_SUITES=( "lucid" "precise" "quantal" "raring" "saucy")
+
+if [ -z "$KEYRING_DIR" -o ! -d "$KEYRING_DIR" ]; then
+    KEYRING_DIR=/usr/share/keyrings
+fi
+
+# Optionally use the changelog of a package to determine the suite to use if
+# none set.
+if [ -z "${CODENAME}" ] && [ -r "debian/changelog" ]; then
+    CODENAME=$(dpkg-parsechangelog | awk '/^Distribution: / {print $2}')
+    # Use the unstable suite for Debian experimental packages.
+    if [ "${CODENAME}" == "experimental" ]; then
+        CODENAME="unstable"
+    fi
+fi
+
+# Optionally set a default distribution if none is used. Note that you can set
+# your own default (i.e. ${DIST:="unstable"}).
+: ${CODENAME:="$(lsb_release --short --codename)"}
+
+# Optionally change Debian codenames in $CODENAME to their aliases.
+case "$CODENAME" in
+    $UNSTABLE_CODENAME)
+        CODENAME="unstable"
+        ;;
+    $TESTING_CODENAME)
+        CODENAME="testing"
+        ;;
+    $STABLE_CODENAME)
+        CODENAME="stable"
+        ;;
+esac
+
+# Optionally set the architecture to the host architecture if none set. Note
+# that you can set your own default (i.e. ${ARCH:="i386"}).
+: ${ARCH:="$(dpkg --print-architecture)"}
+
+DEBOOTSTRAPOPTS=("--arch" "$ARCH" "${DEBOOTSTRAPOPTS[@]}")
+
+## DEBOOTSTRAPOPTS is passed to debootstrap, seems debootstrap only accept one --keyring,
+## if multiple --keyring is given, the last one is used, so make sure the last --keyring is debian or ubuntu.
+## APTKEYRINGS is used later in the chroot system, so it must contain all used keyrings.
+if $(echo ${DEBIAN_SUITES[@]} | grep -q $CODENAME); then
+    # build package for debian
+    MIRRORSITE="http://$MIRRORBASE/debian/"
+    COMPONENTS="main contrib non-free"
+    DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring" "$KEYRING_DIR/debian-archive-keyring.gpg")
+    APTKEYRINGS=("${APTKEYRINGS[@]}" "$KEYRING_DIR/debian-archive-keyring.gpg")
+    DISTRO=debian
+elif $(echo ${UBUNTU_SUITES[@]} | grep -q $CODENAME); then
+    MIRRORSITE="http://$MIRRORBASE/ubuntu/"
+    COMPONENTS="main restricted universe multiverse"
+    ## well, in some cases, we need the *-updates repo
+    #if [ "$CODENAME" == "lucid" ]; then
+    #    OTHERMIRROR="$OTHERMIRROR | deb http://$MIRRORBASE/ubuntu/ lucid-updates main restricted universe multiverse"
+    #fi
+    DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring" "$KEYRING_DIR/ubuntu-archive-keyring.gpg")
+    APTKEYRINGS=("${APTKEYRINGS[@]}" "$KEYRING_DIR/ubuntu-archive-keyring.gpg")
+    DISTRO=ubuntu
+else
+    echo "Unknown distribution: $CODENAME"
+    exit 1
+fi
+
+if [ "$NEED_OBB_REPO" == "yes" ]; then
+    EXTRAPACKAGES="$EXTRAPACKAGES obb-archive-keyring"
+    OTHERMIRROR="$OTHERMIRROR | deb http://$PPAMIRRORBASE/$DISTRO/ $CODENAME main non-free contrib"
+    APTKEYRINGS=("${APTKEYRINGS[@]}" "$KEYRING_DIR/obb-archive-keyring.gpg")
+    HOOKDIR="/build/hooks/$DISTRO/hook.d"
+fi
+
+NAME="$CODENAME-$ARCH"
+if [ "$NEED_OBB_REPO" == "yes" ]; then
+    NAME="$NAME-obb"
+fi
+
+DISTRIBUTION="$CODENAME"
+BASETGZ="/build/base/$NAME-base.tgz"
+BUILDRESULT="/build/result/$NAME/"
+BUILDPLACE="/build/build/"
+ARCHITECTURE=$ARCH
+APTCACHE=""  #APTCACHE="/build/aptcache/$NAME/"
+CCACHE_DIR="/build/ccache/"
+HOOKDIR="/build/hooks/$DISTRO/hook.d"
+[ -e "/usr/bin/pigz" ] && COMPRESSPROG=pigz || COMPRESSPROG=gzip
+PKGNAME_LOGFILE=yes
+
+AUTO_DEBSIGN=yes
+BUILDUSERNAME=pbuilder
+export DEBIAN_FRONTEND=noninteractive
+
+print_env() {
+    echo "   ARCHITECTURE: ${ARCHITECTURE:-$(dpkg --print-architecture)}"
+    echo "        BASETGZ: ${BASETGZ}"
+    echo "     BUILDPLACE: ${BUILDPLACE}"
+    echo "    BUILDRESULT: ${BUILDRESULT}"
+    echo "        HOOKDIR: ${HOOKDIR}"
+    echo "DEBOOTSTRAPOPTS: ${DEBOOTSTRAPOPTS[@]}"
+    echo "    APTKEYRINGS: ${APTKEYRINGS[@]}"
+}
+
+print_env
+
+echo "leaving $BASH_SOURCE ..."
+
+# vim:ai:et:sts=4:sw=4:ft=sh

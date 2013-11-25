@@ -1,0 +1,189 @@
+#!/bin/bash
+
+# initialize variables
+
+## whether the build depends on obb repo
+## default: no
+## toggle with: --with-obb, --without-obb
+NEED_OBB_REPO=no
+
+## codename used to build the package, could be:
+##  - wheezy, jessie, sid, ...
+## default: host codename
+## specify with: lucid precise stable unstable ...
+CODENAME=$(lsb_release --short --codename)
+
+## architecture to build for
+## default: host arch
+## specify with: amd64 i386
+ARCH=$(dpkg --print-architecture)
+
+## pbuilder action: create, update, build or login
+## default: none
+## specify with: create update login, if dsc file is given ,build is implied
+PBUILDER_ACTION=
+
+## dsc file used to build
+## default: none
+DSCFILE=
+
+## use pbuilder or pdebuild to build the package, it is automatically decided
+CMD=
+
+## extra options passed to pbuilder or pdebuild
+EXTRA_OPTIONS=
+
+## KEYRING_DIR will be passed to pbuilder, which will be used in pbuilderrc
+## we will try find script dir
+__script=$(readlink -f $(which $0))
+__script_dir=$(dirname $__script)
+if [ -d "$__script_dir/keyrings" ]; then
+    KEYRING_DIR=$__script_dir/keyrings
+fi
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --with-obb|--obb|obb)
+            NEED_OBB_REPO=yes
+            ;;
+        --without-obb|--no-obb)
+            NEED_OBB_REPO=no
+            ;;
+        lucid|precise|quantal|raring|saucy|trusty)
+            CODENAME=$1
+            ;;
+        stable|testing|unstable|wheezy|jessie|sid)
+            CODENAME=$1
+            ;;
+        amd64|i386|mipsel)
+            ARCH=$1
+            ;;
+        --create|--update|--login|--build)
+            PBUILDER_ACTION="$1"
+            CMD=pbuilder
+            ;;
+        create|update|login|build)
+            PBUILDER_ACTION="--$1"
+            CMD=pbuilder
+            ;;
+        *.dsc)
+            DSCFILE=$1
+            CMD=pbuilder
+            PBUILDER_ACTION="--build"
+            ;;
+        *)
+            EXTRA_OPTIONS="$EXTRA_OPTIONS $1"
+    esac
+    shift
+done
+
+## we use `pdebuild` if we are in the source directory, else use `pbuilder --build`
+if [ -e "debian/changelog" -a -z "$CMD" ]; then
+    CMD=pdebuild
+    CODENAME=$(dpkg-parsechangelog | awk '/^Distribution: / {print $2}')
+elif [ -z "$PBUILDER_ACTION" -a -z "$DSCFILE" ]; then
+    _DSCFILES=$(ls -1 . | egrep .dsc$)
+    if [ -e "$_DSCFILES" ]; then
+        DSCFILE=$_DSCFILES
+        CMD=${CMD:-pbuilder}
+        PBUILDER_ACTION="--build"
+    fi
+fi
+
+# normalize debian codename
+case $CODENAME in
+    wheezy)
+        CODENAME=stable
+        ;;
+    jessie)
+        CODENAME=testing
+        ;;
+    sid)
+        CODENAME=unstable
+        ;;
+    ## 3.x kernel version will break old glibc setup, we need to use fake-uname.so
+    ## need patched debootstrap gusty scripts and fake-uname.so
+    lucid)
+        export UTS_RELEASE=2.6.32
+        export LD_PRELOAD=/usr/lib/fake-uname.so
+        ;;
+esac
+
+NAME="$CODENAME-$ARCH"
+if [ "$NEED_OBB_REPO" == "yes" ]; then
+    NAME="$NAME-obb"
+fi
+
+if [ -n "$DSCFILE" ]; then
+    _filename=${DSCFILE%.dsc}
+    _logfilename="${_filename}_$ARCH.build"
+elif [ -e "debian/changelog" -a "$CMD" == "pdebuild" ]; then
+    VERSION=$(dpkg-parsechangelog | awk '/^Version: / {print $2}')
+    _logfilename="$(basename $PWD)_${VERSION}_$ARCH.build"
+else
+    _logfilename="${PBUILDER_ACTION#--}.log"
+fi
+LOGDIR="/build/logs/$NAME"
+LOGFILE="--logfile $LOGDIR/$_logfilename"
+if [ ! -d "$LOGDIR" ]; then
+    mkdir -pv "$LOGDIR"
+fi
+
+## since the build will produce a lot of 'junk' files, we prefer build under /tmp/
+## we only deal with source directory case
+if [ "$CMD" == "pdebuild" -a -e "debian/changelog" ]; then
+    if [[ "$PWD" != /tmp/* ]]; then
+        TMPDIR=$(mktemp -d /tmp/pkgbuild.${_logfilename%.build}.$NAME.XXXX)
+        _srcdirname=$(basename $PWD)
+        echo "copying src dir to $TMPDIR/$_srcdirname/ ..."
+        rsync -a $PWD/ $TMPDIR/$_srcdirname/
+
+        echo "entering $TMPDIR/$_srcdirname ..."
+        pushd $TMPDIR/$_srcdirname
+
+        if [ -d "./.git" ]; then
+            echo "detected .git dir, removing it ..."
+            rm -rf ./.git
+        fi
+    fi
+fi
+
+print_env() {
+    echo "       CODENAME: $CODENAME"
+    echo "           ARCH: $ARCH"
+    echo "  NEED_OBB_REPO: $NEED_OBB_REPO"
+    echo "PBUILDER_ACTION: $PBUILDER_ACTION"
+    echo "        DSCFILE: $DSCFILE"
+    echo "            CMD: $CMD"
+    echo "  EXTRA_OPTIONS: $EXTRA_OPTIONS"
+    echo "        LOGFILE: $LOGFILE"
+    echo "         LOGDIR: $LOGDIR"
+    echo "     FAKE_UNAME: $UTS_RELEASE"
+    echo "     LD_PRELOAD: $LD_PRELOAD"
+    echo "         TMPDIR: $TMPDIR"
+    echo "    KEYRING_DIR: $KEYRING_DIR"
+}
+
+if [ "$CMD" == "pbuilder" ]; then
+    print_env
+    sudo UTS_RELEASE=$UTS_RELEASE LD_PRELOAD=$LD_PRELOAD \
+         KEYRING_DIR=$KEYRING_DIR \
+         CODENAME=$CODENAME ARCH=$ARCH NEED_OBB_REPO=$NEED_OBB_REPO \
+         $CMD $PBUILDER_ACTION $EXTRA_OPTIONS $LOGFILE $DSCFILE
+else
+    print_env
+    CODENAME=$CODENAME ARCH=$ARCH NEED_OBB_REPO=$NEED_OBB_REPO \
+         KEYRING_DIR=$KEYRING_DIR \
+         $CMD $EXTRA_OPTIONS $LOGFILE
+fi
+
+# we're in TMPDIR
+if [ -n "$TMPDIR" ]; then
+    popd
+    echo "finished building"
+    echo "package build files are in $TMPDIR"
+fi
+
+exit 0
+
+# vim:ai:et:sts=4:sw=4:
