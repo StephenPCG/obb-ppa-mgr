@@ -1,5 +1,5 @@
 echo "entering $BASH_SOURCE ..."
-echo "whoami: $(whoami)"
+echo "         whoami: $(whoami)"
 
 MIRRORBASE="mirrors.local.onebitbug.me"
 PPAMIRRORBASE="ppa.local.onebitbug.me"
@@ -62,7 +62,7 @@ elif $(echo ${UBUNTU_SUITES[@]} | grep -q $CODENAME); then
     COMPONENTS="main restricted universe multiverse"
     ## well, in some cases, we need the *-updates repo
     #if [ "$CODENAME" == "lucid" ]; then
-    #    OTHERMIRROR="$OTHERMIRROR | deb http://$MIRRORBASE/ubuntu/ lucid-updates main restricted universe multiverse"
+    #    OTHERMIRROR="$OTHERMIRROR |deb http://$MIRRORBASE/ubuntu/ lucid-updates main restricted universe multiverse"
     #fi
     DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring" "$KEYRING_DIR/ubuntu-archive-keyring.gpg")
     APTKEYRINGS=("${APTKEYRINGS[@]}" "$KEYRING_DIR/ubuntu-archive-keyring.gpg")
@@ -74,7 +74,7 @@ fi
 
 if [ "$NEED_OBB_REPO" == "yes" ]; then
     EXTRAPACKAGES="$EXTRAPACKAGES obb-archive-keyring"
-    OTHERMIRROR="$OTHERMIRROR | deb http://$PPAMIRRORBASE/$DISTRO/ $CODENAME main non-free contrib"
+    OTHERMIRROR="$OTHERMIRROR |deb http://$PPAMIRRORBASE/$DISTRO/ $CODENAME main non-free contrib"
     APTKEYRINGS=("${APTKEYRINGS[@]}" "$KEYRING_DIR/obb-archive-keyring.gpg")
     HOOKDIR="/build/hooks/$DISTRO/hook.d"
 fi
@@ -98,6 +98,9 @@ PKGNAME_LOGFILE=yes
 AUTO_DEBSIGN=yes
 BUILDUSERNAME=pbuilder
 export DEBIAN_FRONTEND=noninteractive
+
+export debian_chroot="pbuild$$"
+export PS1="pbuild chroot 32165 # "
 
 print_env() {
     echo "   ARCHITECTURE: ${ARCHITECTURE:-$(dpkg --print-architecture)}"

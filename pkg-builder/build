@@ -134,6 +134,13 @@ if [ ! -d "$LOGDIR" ]; then
     mkdir -pv "$LOGDIR"
 fi
 
+## don't use logfile for "--login", or will result a bash with pipe (tee) as stdout/stderr.
+## another solution is use a F10new-shell hook with: /bin/bash < /dev/tty > /dev/tty 2> /dev/tty
+if [ "$PBUILDER_ACTION" == "--login" ]; then
+    LOGDIR=
+    LOGFILE=
+fi
+
 ## since the build will produce a lot of 'junk' files, we prefer build under /tmp/
 ## we only deal with source directory case
 if [ "$CMD" == "pdebuild" -a -e "debian/changelog" ]; then
